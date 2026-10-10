@@ -76,17 +76,25 @@ _DOMAIN_RANGE: Final[dict[str, tuple[frozenset[str] | None, frozenset[str] | Non
 }
 
 # V1 阶段由 Rule-based Validator 拦截的 relation_type（D-5）
-# RECOMMENDED_BY：需要 Guideline/Consensus 实体，V1 暂无该类型
-# OTHER：仅用于人工审核或 Ontology 扩展，不允许 LLM 自由生成（schema 层保留枚举，
-#        校验层拦截；但若人工审核后插入 OTHER，则不拦截——这里按 D-5 仅拦截 RECOMMENDED_BY）
+# RECOMMENDED_BY：需要 Guideline/Consensus 实体，V1 暂无该类型 → 始终拦截
+# OTHER：不允许 LLM 自动生成；仅人工审核后可补充
 _V1_DISALLOWED_RELATION_TYPES: Final[frozenset[str]] = frozenset({"RECOMMENDED_BY"})
+
+# 自动抽取模式下额外拦截 OTHER（防止阶段一被跳过时 OTHER 绕过）
+_AUTO_BLOCKED_TYPES: Final[frozenset[str]] = frozenset({"OTHER"})
 
 
 class RuleValidatorImpl:
     """业务规则校验器，实现 RuleValidator Protocol。
 
-    无构造参数（纯函数式校验，无状态）。
+    参数：
+        strict_other  True（默认）：自动抽取模式下拦截 OTHER 关系，防止
+                      LLM 生成的 OTHER 在阶段一被跳过时绕过校验。
+                      False：人工审核模式，允许审核后补充的 OTHER 关系。
     """
+
+    def __init__(self, strict_other: bool = True) -> None:
+        self._strict_other = strict_other
 
     def validate(
         self,
@@ -108,17 +116,17 @@ class RuleValidatorImpl:
         """
         issues: list[ValidationIssue] = []
 
-        # 构建索引
+        # 构建索引（重复 ID 时只保留首次出现，避免覆盖导致后续校验不完整）
         entity_map: dict[str, dict[str, Any]] = {}
         for ent in entities:
             eid = ent.get("entity_id", "")
-            if eid:
+            if eid and eid not in entity_map:
                 entity_map[eid] = ent
 
         evidence_map: dict[str, dict[str, Any]] = {}
         for ev in evidences:
             eid = ev.get("evidence_id", "")
-            if eid:
+            if eid and eid not in evidence_map:
                 evidence_map[eid] = ev
 
         # 1. Evidence 校验（§14.4）
@@ -152,7 +160,7 @@ class RuleValidatorImpl:
             if eid in seen_ids:
                 issues.append(
                     ValidationIssue(
-                        ErrorCode.DUPLICATE_ENTITY,  # 复用：Evidence 重复
+                        ErrorCode.DUPLICATE_EVIDENCE,
                         f"evidence_id 重复: {eid}",
                         "evidence_id",
                         eid,
@@ -275,11 +283,23 @@ class RuleValidatorImpl:
                 )
             else:
                 for ev_id in ev_ids:
-                    if ev_id not in evidence_map:
+                    ev_ref = evidence_map.get(ev_id)
+                    if ev_ref is None:
                         issues.append(
                             ValidationIssue(
                                 ErrorCode.EVIDENCE_NOT_FOUND,
                                 f"Entity 引用了不存在的 evidence_id: {ev_id}",
+                                "evidence_ids",
+                                eid,
+                            )
+                        )
+                    elif str(ev_ref.get("document_id", "")) != document_id:
+                        issues.append(
+                            ValidationIssue(
+                                ErrorCode.DOCUMENT_ID_MISMATCH,
+                                f"Entity 引用的 Evidence.document_id="
+                                f"{ev_ref.get('document_id')} 与当前文献 "
+                                f"{document_id} 不一致（跨文献证据引用）",
                                 "evidence_ids",
                                 eid,
                             )
@@ -328,7 +348,7 @@ class RuleValidatorImpl:
                     )
                 )
 
-            # D-5：RECOMMENDED_BY 拦截（V1 阶段）
+            # D-5：RECOMMENDED_BY 始终拦截 + OTHER 在自动模式下拦截
             rtype = str(rel.get("relation_type", ""))
             if rtype in _V1_DISALLOWED_RELATION_TYPES:
                 issues.append(
@@ -340,6 +360,17 @@ class RuleValidatorImpl:
                         rid,
                     )
                 )
+            if self._strict_other and rtype in _AUTO_BLOCKED_TYPES:
+                issues.append(
+                    ValidationIssue(
+                        ErrorCode.UNSUPPORTED_RELATION,
+                        f"自动抽取模式下不允许 relation_type={rtype}（"
+                        f"OTHER 仅限人工审核后补充；如需启用，"
+                        f"使用 RuleValidatorImpl(strict_other=False)）",
+                        "relation_type",
+                        rid,
+                    )
+                )
 
             # §22：自环检查（head == tail）
             head_id = str(rel.get("head_entity_id", ""))
@@ -347,7 +378,7 @@ class RuleValidatorImpl:
             if head_id and tail_id and head_id == tail_id:
                 issues.append(
                     ValidationIssue(
-                        ErrorCode.DOMAIN_RANGE_MISMATCH,
+                        ErrorCode.SELF_LOOP_NOT_ALLOWED,
                         f"head_entity_id 与 tail_entity_id 相同（{head_id}），禁止自环",
                         "head_entity_id/tail_entity_id",
                         rid,
@@ -425,7 +456,7 @@ class RuleValidatorImpl:
                         )
                     )
 
-            # §10.3：Evidence 存在性
+            # §10.3：Evidence 存在性 + 文献一致性
             ev_ids = rel.get("evidence_ids", [])
             if not isinstance(ev_ids, list) or not ev_ids:
                 issues.append(
@@ -438,7 +469,8 @@ class RuleValidatorImpl:
                 )
             else:
                 for ev_id in ev_ids:
-                    if ev_id not in evidence_map:
+                    ev_ref = evidence_map.get(ev_id)
+                    if ev_ref is None:
                         issues.append(
                             ValidationIssue(
                                 ErrorCode.EVIDENCE_NOT_FOUND,
@@ -447,10 +479,22 @@ class RuleValidatorImpl:
                                 rid,
                             )
                         )
+                    elif str(ev_ref.get("document_id", "")) != document_id:
+                        issues.append(
+                            ValidationIssue(
+                                ErrorCode.DOCUMENT_ID_MISMATCH,
+                                f"Relation 引用的 Evidence.document_id="
+                                f"{ev_ref.get('document_id')} 与当前文献 "
+                                f"{document_id} 不一致（跨文献证据引用）",
+                                "evidence_ids",
+                                rid,
+                            )
+                        )
 
-            # §10.6：Evidence 支持检查（Relation 应能溯源至 Evidence.source_text）
-            # 轻量检查：若 Relation 关联的所有 Evidence 的 source_text 都为空，则标记
-            # 完整的溯源（Relation 语义在 source_text 中有依据）需人工/NLP 判断
+            # §10.6：Evidence 文本完整性检查
+            # 程序可验证的规则：Evidence 存在、source_text 非空、文献 ID 一致。
+            # 语义支持规则（Evidence 是否真正支持关系的类型、方向和断言）需人工评估
+            # 或单独的语义验证模块，本检查不验证关系语义的真实性。
             if isinstance(ev_ids, list) and ev_ids:
                 all_empty = True
                 for ev_id in ev_ids:
@@ -584,6 +628,23 @@ def _main() -> int:
     assert any(i.error_code == ErrorCode.UNSUPPORTED_RELATION for i in issues)
     print(f"✓ RECOMMENDED_BY → UNSUPPORTED_RELATION（D-5 拦截，{len(issues)} 个）")
 
+    # 5b. OTHER 在自动模式下拦截 (strict_other=True)
+    bad_relations5b = list(relations)
+    bad_relations5b[0] = dict(relations[0])
+    bad_relations5b[0]["relation_type"] = "OTHER"
+    issues = validator.validate(evidences, entities, bad_relations5b, "BT000001")
+    assert any(i.error_code == ErrorCode.UNSUPPORTED_RELATION for i in issues)
+    print(f"✓ OTHER → UNSUPPORTED_RELATION（strict_other 拦截，{len(issues)} 个）")
+
+    # 5c. OTHER 在人工审核模式下允许 (strict_other=False)
+    human_validator = RuleValidatorImpl(strict_other=False)
+    issues = human_validator.validate(evidences, entities, bad_relations5b, "BT000001")
+    assert not any(
+        i.error_code == ErrorCode.UNSUPPORTED_RELATION and "OTHER" in i.message
+        for i in issues
+    )
+    print("✓ OTHER 在 strict_other=False 时通过（人工审核模式）")
+
     # 6. SOURCE_TEXT_MISSING
     bad_evidences = [dict(evidences[0])]
     bad_evidences[0]["source_text"] = ""
@@ -591,14 +652,38 @@ def _main() -> int:
     assert any(i.error_code == ErrorCode.SOURCE_TEXT_MISSING for i in issues)
     print(f"✓ source_text 为空 → SOURCE_TEXT_MISSING（{len(issues)} 个）")
 
-    # 7. 自环检查
+    # 7. 自环检查 → SELF_LOOP_NOT_ALLOWED
     bad_relations6 = list(relations)
     bad_relations6[0] = dict(relations[0])
     bad_relations6[0]["relation_type"] = "ASSOCIATED_WITH"
     bad_relations6[0]["tail_entity_id"] = bad_relations6[0]["head_entity_id"]
     issues = validator.validate(evidences, entities, bad_relations6, "BT000001")
-    assert any(i.error_code == ErrorCode.DOMAIN_RANGE_MISMATCH for i in issues)
-    print(f"✓ 自环（head==tail）→ DOMAIN_RANGE_MISMATCH（{len(issues)} 个）")
+    assert any(i.error_code == ErrorCode.SELF_LOOP_NOT_ALLOWED for i in issues)
+    print(f"✓ 自环（head==tail）→ SELF_LOOP_NOT_ALLOWED（{len(issues)} 个）")
+
+    # 8. Evidence 文献一致性（跨文献引用）
+    bad_evidences2 = [dict(evidences[0])]
+    bad_evidences2[0]["document_id"] = "CV000099"  # 不同文献
+    issues = validator.validate(bad_evidences2, entities, relations, "BT000001")
+    assert any(
+        i.error_code == ErrorCode.DOCUMENT_ID_MISMATCH
+        and "跨文献" in i.message
+        for i in issues
+    )
+    print(f"✓ 跨文献 Evidence 引用 → DOCUMENT_ID_MISMATCH（{len(issues)} 个）")
+
+    # 9. DUPLICATE_EVIDENCE
+    dup_evidences = [evidences[0], dict(evidences[0])]
+    issues = validator.validate(dup_evidences, entities, relations, "BT000001")
+    assert any(i.error_code == ErrorCode.DUPLICATE_EVIDENCE for i in issues)
+    print(f"✓ evidence_id 重复 → DUPLICATE_EVIDENCE（{len(issues)} 个）")
+
+    # 10. 重复 entity_id 不覆盖索引
+    dup_entities = [entities[0], dict(entities[0])]
+    dup_entities[1]["entity_type"] = "Pathology"  # 不同的类型
+    issues = validator.validate(evidences, dup_entities, relations, "BT000001")
+    assert any(i.error_code == ErrorCode.DUPLICATE_ENTITY for i in issues)
+    print(f"✓ entity_id 重复 → DUPLICATE_ENTITY（{len(issues)} 个）")
 
     print("\n自检全部通过")
     return 0

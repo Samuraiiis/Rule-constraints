@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Entity",
+  "description": "后处理阶段的单条 Entity 对象。标准化字段允许为 null。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "entity_id",
+    "document_id",
+    "entity_type",
+    "mention",
+    "source_text",
+    "page",
+    "section",
+    "evidence_ids",
+    "canonical_name",
+    "ontology_id"
+  ],
+  "properties": {
+    "entity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "document_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entity_type": {
+      "type": "string",
+      "enum": [
+        "Disease",
+        "ImagingFinding",
+        "MRISequence",
+        "Anatomy",
+        "Treatment",
+        "Biomarker",
+        "Pathology",
+        "MolecularFeature",
+        "GeneticFeature",
+        "ClinicalFeature",
+        "Symptom",
+        "RiskFactor",
+        "Complication",
+        "StudyPopulation",
+        "ImagingModality",
+        "ContrastAgent",
+        "Other"
+      ]
+    },
+    "mention": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "page": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "section": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "canonical_name": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ontology_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

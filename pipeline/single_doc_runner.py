@@ -512,12 +512,14 @@ _BLOCKING_ERRORS = frozenset(
         ErrorCode.INVALID_ENUM,
         ErrorCode.DOCUMENT_ID_MISMATCH,
         ErrorCode.DOMAIN_RANGE_MISMATCH,
+        ErrorCode.SELF_LOOP_NOT_ALLOWED,
         ErrorCode.ENTITY_NOT_FOUND,
         ErrorCode.EVIDENCE_NOT_FOUND,
         ErrorCode.UNSUPPORTED_RELATION,  # D-5 RECOMMENDED_BY 在 V1 被拦截
         ErrorCode.SOURCE_TEXT_MISSING,
         ErrorCode.DUPLICATE_ENTITY,
         ErrorCode.DUPLICATE_RELATION,
+        ErrorCode.DUPLICATE_EVIDENCE,
     }
 )
 

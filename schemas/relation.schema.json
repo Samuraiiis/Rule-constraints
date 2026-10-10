@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Relation",
+  "description": "后处理阶段的单条 Relation 对象。实体和证据引用由 rule_validator.py 检查。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "relation_id",
+    "document_id",
+    "head_entity_id",
+    "tail_entity_id",
+    "relation_type",
+    "assertion_type",
+    "evidence_ids"
+  ],
+  "properties": {
+    "relation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "document_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "head_entity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tail_entity_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "relation_type": {
+      "type": "string",
+      "enum": [
+        "HAS_FINDING",
+        "VISIBLE_ON",
+        "LOCATED_IN",
+        "DIAGNOSED_BY",
+        "DIFFERENTIAL_DIAGNOSIS",
+        "HAS_SYMPTOM",
+        "HAS_RISK_FACTOR",
+        "HAS_COMPLICATION",
+        "TREATED_BY",
+        "RECOMMENDED_BY",
+        "PREDICTS",
+        "ASSOCIATED_WITH",
+        "ASSOCIATED_WITH_BIOMARKER",
+        "ASSOCIATED_WITH_MOLECULAR_FEATURE",
+        "ASSOCIATED_WITH_GENETIC_FEATURE",
+        "HAS_PATHOLOGY",
+        "ASSESSED_BY",
+        "COMPARED_WITH",
+        "IMPROVES",
+        "WORSENS",
+        "CORRELATES_WITH",
+        "OTHER"
+      ]
+    },
+    "assertion_type": {
+      "type": "string",
+      "enum": [
+        "Positive",
+        "Negative",
+        "Uncertain",
+        "Conditional",
+        "Comparative",
+        "Recommendation",
+        "Association",
+        "Prediction",
+        "Unknown"
+      ]
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  }
+}

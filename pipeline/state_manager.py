@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Final
 
 # --------------------------------------------------------------------------- #
-# 错误码（Schema_rules §16，共 14 个）
+# 错误码（Schema_rules §16，共 16 个）
 # --------------------------------------------------------------------------- #
 class ErrorCode(str, Enum):
     """Schema_rules §16 定义的全部错误码。"""
@@ -45,10 +45,12 @@ class ErrorCode(str, Enum):
     INVALID_ENUM = "INVALID_ENUM"
     DUPLICATE_ENTITY = "DUPLICATE_ENTITY"
     DUPLICATE_RELATION = "DUPLICATE_RELATION"
+    DUPLICATE_EVIDENCE = "DUPLICATE_EVIDENCE"
     ENTITY_NOT_FOUND = "ENTITY_NOT_FOUND"
     EVIDENCE_NOT_FOUND = "EVIDENCE_NOT_FOUND"
     DOCUMENT_ID_MISMATCH = "DOCUMENT_ID_MISMATCH"
     DOMAIN_RANGE_MISMATCH = "DOMAIN_RANGE_MISMATCH"
+    SELF_LOOP_NOT_ALLOWED = "SELF_LOOP_NOT_ALLOWED"
     SOURCE_TEXT_MISSING = "SOURCE_TEXT_MISSING"
     UNSUPPORTED_RELATION = "UNSUPPORTED_RELATION"
     NORMALIZATION_FAILED = "NORMALIZATION_FAILED"

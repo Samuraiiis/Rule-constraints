@@ -77,7 +77,9 @@ from agent_generated.scripts.check_agent_raw import DocReport, check as check_ag
 
 # P7 校验器（无状态，模块级复用）
 _JSON_VALIDATOR: Final[JSONSchemaValidatorImpl] = JSONSchemaValidatorImpl()
-_RULE_VALIDATOR: Final[RuleValidatorImpl] = RuleValidatorImpl()
+# 模块级校验器（strict_other=True，自动抽取模式下拦截 OTHER 关系）
+# 人工审核流程需单独创建 RuleValidatorImpl(strict_other=False)，不在自动管线中使用
+_RULE_VALIDATOR: Final[RuleValidatorImpl] = RuleValidatorImpl(strict_other=True)
 
 # 合法枚举集合（用于快速校验）
 _VALID_ENTITY_TYPES: Final[frozenset[str]] = frozenset(ENTITY_TYPES)
