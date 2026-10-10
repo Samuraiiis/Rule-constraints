@@ -1,0 +1,8 @@
+canonical_name,synonym,entity_type,ontology_id,source
+front-line chemotherapy,front-line chemotherapy,Treatment,,BT000001
+new anticancer agents,new anticancer agents,Treatment,,BT000001
+radiation therapy,radiation therapy,Treatment,,BT000001
+radiosensitizer,radiosensitizer,Treatment,,BT000001
+surgical resection,surgical resection,Treatment,,BT000001
+whole-brain radiation,whole-brain radiation,Treatment,,BT000001
+whole-brain radiation alone,whole-brain radiation alone,Treatment,,BT000001

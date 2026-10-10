@@ -1,0 +1,3 @@
+canonical_name,synonym,entity_type,ontology_id,source
+MRI evidence of tumor progression,MRI evidence of tumor progression;MRI progression;evidence of tumor recurrence on MRI,ImagingFinding,,BT000001
+radiographic failure,radiographic failure,ImagingFinding,,BT000001

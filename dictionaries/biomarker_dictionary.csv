@@ -1,0 +1,7 @@
+canonical_name,synonym,entity_type,ontology_id,source
+Functional Assessment of Cancer Therapy with brain tumor-specific module,FACT-Br;Functional Assessment of Cancer Therapy with brain tumor-specific module,Biomarker,,BT000001
+Functional Independence Measure,FIM;Functional Independence Measure,Biomarker,,BT000001
+Karnofsky performance scale,KPS;Karnofsky performance scale,Biomarker,,BT000001
+Mini-Mental State Examination,MMSE;Mini-Mental State Examination,Biomarker,,BT000001
+time to tumor progression,TTP;time to tumor progression,Biomarker,,BT000001
+reliable change index,reliable change index,Biomarker,,BT000001

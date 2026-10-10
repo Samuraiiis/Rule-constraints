@@ -1,0 +1,9 @@
+canonical_name,synonym,entity_type,ontology_id,source
+Primary malignant brain cancer,Primary malignant brain cancer,Disease,,BT000001
+anaplastic astrocytoma,anaplastic astrocytoma,Disease,,BT000001
+brain cancer,brain cancer,Disease,,BT000001
+brain metastases from non-small-cell lung cancer,brain metastases from non-small-cell lung cancer,Disease,,BT000001
+recurrent brain tumors,recurrent brain tumors,Disease,,BT000001
+recurrent glioblastoma,recurrent glioblastoma,Disease,,BT000001
+recurrent malignant glioma,recurrent malignant glioma,Disease,,BT000001
+treatment-related dementia,treatment-related dementia,Disease,,BT000001
